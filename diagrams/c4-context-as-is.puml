@@ -1,0 +1,28 @@
+@startuml C4_Context_AsIs
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title System Context Diagram - Warm House (AS-IS Monolithic Architecture)
+
+Person(user, "Homeowner", "Owner of the house")
+Person(technician, "Installation Technician", "Specialist who installs and configures heating modules at customer's home")
+
+System(monolith, "Warm House Company", "Allows users to remotely control heating and monitor temperature.")
+
+System_Ext(heatingModule, "Heating Control Module", "IoT device installed in the house.")
+
+Rel(user, monolith, "Views temperature, controls heating", "Web UI")
+Rel(monolith, heatingModule, "Sends ON/OFF commands, requests temperature", "Synchronous")
+Rel(heatingModule, monolith, "Returns current temperature", "Synchronous")
+
+Rel(technician, monolith, "Registers new modules, configures devices")
+Rel(technician, heatingModule, "Physically installs and connects to network", "Manual installation")
+
+note right of monolith
+  **Technology Stack:**
+  - Language: Go
+  - Database: PostgreSQL
+  - Architecture: Monolithic
+  - Communication: Synchronous
+end note
+
+@enduml
