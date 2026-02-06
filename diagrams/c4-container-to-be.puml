@@ -1,0 +1,45 @@
+@startuml C4_Container_ToBe
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Container Diagram - Warm House Ecosystem (TO-BE Microservices Architecture)
+
+Person(user, "Homeowner", "User who manages heating and views temperature")
+
+System_Boundary(warmhouse, "Warm House Ecosystem") {
+    Container(webui, "Web Application", "React", "Provides UI for managing devices and viewing telemetry")
+    Container(api_gateway, "API Gateway", "Go", "Single entry point, routing, authentication")
+
+    Container(user_service, "User Service", "Go", "User authorization, profile management")
+    Container(device_service, "Device Service", "Go", "Device registration, sending commands to devices")
+    Container(telemetry_service, "Telemetry Service", "Go", "Collects sensor data, tracks device status, provides data to UI")
+
+    ContainerDb(user_db, "User Database", "PostgreSQL", "User accounts")
+    ContainerDb(device_db, "Device Database", "PostgreSQL", "Device registry, configurations")
+    ContainerDb(telemetry_db, "Telemetry Database", "PostgreSQL/TimescaleDB", "Sensor data, device states")
+
+    Container(message_broker, "Message Broker", "Kafka", "Asynchronous communication with IoT devices")
+}
+
+System_Ext(heating_module, "Heating Module", "IoT device with temperature sensor and heating control")
+
+Rel(user, webui, "Manages heating, views temperature", "HTTPS")
+
+Rel(webui, api_gateway, "Makes API calls")
+
+Rel(api_gateway, user_service, "Authentication")
+Rel(api_gateway, device_service, "Device management, send commands")
+Rel(api_gateway, telemetry_service, "Query temperature data, device status")
+
+Rel(user_service, user_db, "Reads/writes user data")
+Rel(device_service, device_db, "Reads/writes device configs")
+Rel(telemetry_service, telemetry_db, "Reads/writes sensor data")
+
+Rel(device_service, message_broker, "Publishes commands (ON/OFF)")
+Rel(message_broker, heating_module, "Routes commands")
+Rel(heating_module, message_broker, "Publishes temperature data")
+Rel(message_broker, telemetry_service, "Delivers sensor data")
+
+Rel(device_service, user_service, "Validates user permissions")
+Rel(telemetry_service, device_service, "Gets device metadata")
+
+@enduml

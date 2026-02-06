@@ -1,0 +1,39 @@
+@startuml C4_Component_DeviceService
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Component Diagram - Device Service
+
+Container(api_gateway, "API Gateway", "Go", "Routes requests from Web UI")
+Container(user_service, "User Service", "Go", "Validates user permissions")
+Container(message_broker, "Message Broker", "Kafka", "Asynchronous communication with devices")
+ContainerDb(device_db, "Device Database", "PostgreSQL", "Stores device data")
+
+Container_Boundary(device_service, "Device Service") {
+    Component(api_controller, "API Controller", "REST Handler", "Handles HTTP requests from API Gateway")
+
+    Component(device_registry, "Device Registry Component", "Business Logic", "Manages device registration, configuration, catalog of device types")
+    Component(device_command, "Device Command Component", "Business Logic", "Sends commands to devices")
+    Component(auth_middleware, "Auth Middleware", "Middleware", "Validates user permissions with User Service")
+
+    Component(device_repository, "Device Repository", "Data Access", "CRUD operations for devices in database")
+    Component(command_publisher, "Command Publisher", "Message Publisher", "Publishes commands to message broker")
+}
+
+System_Ext(heating_module, "Heating Module", "IoT device")
+
+Rel(api_gateway, api_controller, "Device management requests")
+
+Rel(api_controller, auth_middleware, "Validate request")
+Rel(auth_middleware, user_service, "Check user permissions")
+
+Rel(api_controller, device_registry, "Register/configure device")
+Rel(device_registry, device_repository, "Save device data")
+Rel(device_repository, device_db, "Insert/update/query")
+
+Rel(api_controller, device_command, "Send command (ON/OFF)")
+Rel(device_command, device_repository, "Validate device exists")
+Rel(device_command, command_publisher, "Publish command")
+Rel(command_publisher, message_broker, "Kafka Producer")
+Rel(message_broker, heating_module, "Route command")
+
+@enduml
