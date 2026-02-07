@@ -1,0 +1,364 @@
+openapi: 3.0.3
+info:
+  title: Warm House API
+  description: API for Warm House smart home ecosystem
+  version: 1.0.0
+  contact:
+    name: Warm House Team
+
+servers:
+  - url: https://api.warmhouse.com/v1
+    description: Production server
+  - url: http://localhost:8080/v1
+    description: Development server
+
+tags:
+  - name: Users
+    description: User authentication
+  - name: Devices
+    description: Device management
+  - name: Telemetry
+    description: Sensor data and telemetry
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Users
+      summary: Authenticate user
+      description: User login with email and password, returns JWT token
+      operationId: authenticateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePassword123
+      responses:
+        "200":
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT token
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        example: 123e4567-e89b-12d3-a456-426614174000
+                      email:
+                        type: string
+                        example: user@example.com
+                      name:
+                        type: string
+                        example: John Doe
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /devices:
+    get:
+      tags:
+        - Devices
+      summary: Get devices
+      description: Returns list of all devices belonging to authenticated user
+      operationId: getUserDevices
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: house_id
+          in: query
+          description: Filter devices by house ID
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter devices by status
+          required: false
+          schema:
+            type: string
+            enum: [active, inactive, offline]
+      responses:
+        "200":
+          description: List of devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Device"
+                  total:
+                    type: integer
+                    example: 5
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      tags:
+        - Devices
+      summary: Register new device
+      description: Register and configure a new IoT device in the system
+      operationId: registerDevice
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - type
+                - house_id
+                - serial_number
+              properties:
+                name:
+                  type: string
+                  example: Living Room Heater
+                type:
+                  type: string
+                  enum: [heating, lighting, gate, camera]
+                  example: heating
+                house_id:
+                  type: string
+                  format: uuid
+                  example: 123e4567-e89b-12d3-a456-426614174001
+                serial_number:
+                  type: string
+                  example: HT-2024-001
+      responses:
+        "201":
+          description: Device registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "400":
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Device with this serial number already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /telemetry:
+    get:
+      tags:
+        - Telemetry
+      summary: Get telemetry data
+      description: Retrieve sensor data from devices for specified time period
+      operationId: getTelemetryData
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: device_id
+          in: query
+          description: Device ID to get telemetry from
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: metric_type
+          in: query
+          description: Type of metric
+          required: false
+          schema:
+            type: string
+            enum: [temperature, humidity, power, status]
+        - name: from
+          in: query
+          description: Start timestamp (ISO 8601)
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: 2024-01-01T00:00:00Z
+        - name: to
+          in: query
+          description: End timestamp (ISO 8601)
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: 2024-01-02T00:00:00Z
+        - name: limit
+          in: query
+          description: Maximum number of records
+          required: false
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+      responses:
+        "200":
+          description: Telemetry data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device_id:
+                    type: string
+                    format: uuid
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TelemetryRecord"
+                  total:
+                    type: integer
+                    example: 100
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174002
+        name:
+          type: string
+          example: Living Room Heater
+        type:
+          type: string
+          enum: [heating, lighting, gate, camera]
+          example: heating
+        house_id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174001
+        serial_number:
+          type: string
+          example: HT-2024-001
+        status:
+          type: string
+          enum: [active, inactive, offline]
+          example: active
+        created_at:
+          type: string
+          format: date-time
+          example: 2024-01-15T10:30:00Z
+        updated_at:
+          type: string
+          format: date-time
+          example: 2024-01-15T10:30:00Z
+
+    TelemetryRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 12345
+        device_id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174002
+        metric_type:
+          type: string
+          enum: [temperature, humidity, power, status]
+          example: temperature
+        value:
+          type: number
+          format: double
+          example: 22.5
+        unit:
+          type: string
+          example: celsius
+        timestamp:
+          type: string
+          format: date-time
+          example: 2024-01-15T10:30:00Z
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Invalid credentials
+        code:
+          type: string
+          example: AUTH_ERROR
+        message:
+          type: string
+          example: Email or password is incorrect
