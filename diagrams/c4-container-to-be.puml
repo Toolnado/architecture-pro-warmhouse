@@ -17,7 +17,7 @@ System_Boundary(warmhouse, "Warm House Ecosystem") {
     ContainerDb(device_db, "Device Database", "PostgreSQL", "Device registry, configurations")
     ContainerDb(telemetry_db, "Telemetry Database", "PostgreSQL/TimescaleDB", "Sensor data, device states")
 
-    Container(message_broker, "Message Broker", "Kafka", "Asynchronous communication with IoT devices")
+    Container(message_broker, "Message Broker", "Rabbit MQ", "Asynchronous communication with IoT devices")
 }
 
 System_Ext(heating_module, "Heating Module", "IoT device with temperature sensor and heating control")
@@ -34,10 +34,10 @@ Rel(user_service, user_db, "Reads/writes user data")
 Rel(device_service, device_db, "Reads/writes device configs")
 Rel(telemetry_service, telemetry_db, "Reads/writes sensor data")
 
-Rel(device_service, message_broker, "Publishes commands (ON/OFF)")
-Rel(message_broker, heating_module, "Routes commands")
-Rel(heating_module, message_broker, "Publishes temperature data")
-Rel(message_broker, telemetry_service, "Delivers sensor data")
+Rel(device_service, message_broker, "Publishes commands (ON/OFF)", "MQTT")
+Rel(message_broker, heating_module, "Routes commands", "MQTT")
+Rel(heating_module, message_broker, "Publishes temperature data", "MQTT")
+Rel(message_broker, telemetry_service, "Delivers sensor data", "MQTT")
 
 Rel(device_service, user_service, "Validates user permissions")
 Rel(telemetry_service, device_service, "Gets device metadata")
