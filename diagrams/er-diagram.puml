@@ -1,0 +1,108 @@
+@startuml ER_Diagram
+
+title Entity-Relationship Diagram - Warm House System
+
+entity "User" as user {
+  * **id** : UUID <<PK>>
+  --
+  * email : VARCHAR(255) <<unique>>
+  * password_hash : VARCHAR(255)
+  * name : VARCHAR(100)
+  phone : VARCHAR(20)
+  * created_at : TIMESTAMP
+}
+
+entity "House" as house {
+  * **id** : UUID <<PK>>
+  --
+  * name : VARCHAR(100)
+  * address : TEXT
+  * user_id : UUID <<FK>>
+  * created_at : TIMESTAMP
+}
+
+entity "DeviceType" as device_type {
+  * **id** : UUID <<PK>>
+  --
+  * name : VARCHAR(50)
+  description : TEXT
+}
+
+entity "Device" as device {
+  * **id** : UUID <<PK>>
+  --
+  * name : VARCHAR(100)
+  * type_id : UUID <<FK>>
+  * user_id : UUID <<FK>>
+  * house_id : UUID <<FK>>
+  * serial_number : VARCHAR(100) <<unique>>
+  * status : VARCHAR(20)
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity "TelemetryData" as telemetry {
+  * **id** : BIGSERIAL <<PK>>
+  --
+  * device_id : UUID <<FK>>
+  * metric_type : VARCHAR(50)
+  * value : FLOAT
+  * unit : VARCHAR(20)
+  * timestamp : TIMESTAMP
+}
+
+' Relationships
+user ||--o{ house : "owns"
+house ||--o{ device : "contains"
+device_type ||--o{ device : "has type"
+device ||--o{ telemetry : "generates"
+
+note right of user
+  **User Service Database**
+
+  Stores user authentication
+  and profile data
+end note
+
+note right of house
+  **Device Service Database**
+
+  Represents user's property
+  where devices are installed
+end note
+
+note right of device_type
+  **Device Service Database**
+
+  Device types catalog:
+  - heating
+  - lighting
+  - gate
+  - camera
+end note
+
+note right of device
+  **Device Service Database**
+
+  Registry of IoT devices
+
+  Status values:
+  - active
+  - inactive
+  - offline
+end note
+
+note right of telemetry
+  **Telemetry Service Database**
+  (TimescaleDB for time-series)
+
+  Sensor data from devices
+
+  Metric types:
+  - temperature
+  - humidity
+  - power
+  - status
+end note
+
+@enduml

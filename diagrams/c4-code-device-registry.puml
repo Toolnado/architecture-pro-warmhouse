@@ -1,0 +1,77 @@
+@startuml DeviceRegistryCode
+
+title Code Diagram - Device Registry Component (Go)
+
+package "Device Registry Component" {
+
+    class Service {
+        - repo: Repository
+        --
+        + RegisterDevice(ctx, userId, req): (Device, error)
+        + GetDevice(ctx, deviceId): (Device, error)
+        + ListDevices(ctx, userId): ([]Device, error)
+        + UpdateDevice(ctx, deviceId, req): (Device, error)
+        + DeleteDevice(ctx, deviceId): error
+    }
+
+    class Device {
+        + ID: string
+        + Name: string
+        + Type: string
+        + UserID: string
+        + HomeID: string
+        + Status: string
+        + CreatedAt: time.Time
+        + UpdatedAt: time.Time
+    }
+
+    class RegisterRequest {
+        + Name: string
+        + Type: string
+        + HomeID: string
+    }
+
+    class UpdateRequest {
+        + Name: string
+        + Status: string
+    }
+
+    interface Repository {
+        + Create(ctx, device): error
+        + GetByID(ctx, id): (Device, error)
+        + GetByUserID(ctx, userId): ([]Device, error)
+        + Update(ctx, device): error
+        + Delete(ctx, id): error
+    }
+
+    class PostgresRepository {
+        - db: *sql.DB
+        --
+        + Create(ctx, device): error
+        + GetByID(ctx, id): (Device, error)
+        + GetByUserID(ctx, userId): ([]Device, error)
+        + Update(ctx, device): error
+        + Delete(ctx, id): error
+    }
+}
+
+' HTTP Layer
+class Handler {
+    - service: Service
+    --
+    + RegisterDevice(w, r)
+    + GetDevice(w, r)
+    + ListDevices(w, r)
+    + UpdateDevice(w, r)
+    + DeleteDevice(w, r)
+}
+
+Handler --> Service: uses
+Service --> Repository: uses
+Repository <|.. PostgresRepository: implements
+Service ..> Device: returns
+Service ..> RegisterRequest: accepts
+Service ..> UpdateRequest: accepts
+PostgresRepository ..> Device: stores
+
+@enduml

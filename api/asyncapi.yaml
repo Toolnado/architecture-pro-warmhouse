@@ -1,0 +1,187 @@
+asyncapi: 2.6.0
+info:
+  title: Warm House Async API
+  version: 1.0.0
+  description: |
+    Asynchronous API for Warm House ecosystem.
+    Handles device commands and telemetry data via RabbitMQ with MQTT protocol.
+
+servers:
+  production:
+    url: mqtt://rabbitmq:1883
+    protocol: mqtt
+    description: RabbitMQ with MQTT plugin
+
+channels:
+  device/{deviceId}/command:
+    description: Channel for sending commands to IoT devices
+    parameters:
+      deviceId:
+        description: Unique device identifier
+        schema:
+          type: string
+          format: uuid
+    publish:
+      operationId: sendDeviceCommand
+      summary: Send command to device
+      description: Device Service publishes ON/OFF commands to control IoT devices
+      message:
+        $ref: '#/components/messages/DeviceCommand'
+
+    subscribe:
+      operationId: receiveDeviceCommand
+      summary: Device receives command
+      description: IoT device subscribes to receive commands
+      message:
+        $ref: '#/components/messages/DeviceCommand'
+
+  device/{deviceId}/telemetry:
+    description: Channel for receiving telemetry data from IoT devices
+    parameters:
+      deviceId:
+        description: Unique device identifier
+        schema:
+          type: string
+          format: uuid
+    publish:
+      operationId: sendTelemetryData
+      summary: Device sends telemetry
+      description: IoT device publishes sensor data (temperature, humidity, etc.)
+      message:
+        $ref: '#/components/messages/TelemetryData'
+
+    subscribe:
+      operationId: receiveTelemetryData
+      summary: Telemetry Service receives data
+      description: Telemetry Service subscribes to collect sensor data and store it
+      message:
+        $ref: '#/components/messages/TelemetryData'
+
+  device/{deviceId}/status:
+    description: Channel for device status updates
+    parameters:
+      deviceId:
+        description: Unique device identifier
+        schema:
+          type: string
+          format: uuid
+    publish:
+      operationId: sendDeviceStatus
+      summary: Device sends status update
+      description: IoT device publishes its current status (online/offline)
+      message:
+        $ref: '#/components/messages/DeviceStatus'
+
+    subscribe:
+      operationId: receiveDeviceStatus
+      summary: Telemetry Service receives status
+      description: Telemetry Service subscribes to track device online/offline state
+      message:
+        $ref: '#/components/messages/DeviceStatus'
+
+components:
+  messages:
+    DeviceCommand:
+      name: DeviceCommand
+      title: Device Command
+      summary: Command to control an IoT device
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - command_id
+          - device_id
+          - action
+          - timestamp
+        properties:
+          command_id:
+            type: string
+            format: uuid
+            description: Unique command identifier
+          device_id:
+            type: string
+            format: uuid
+            description: Target device identifier
+          action:
+            type: string
+            enum:
+              - turn_on
+              - turn_off
+              - set_temperature
+            description: Command action
+          parameters:
+            type: object
+            description: Optional command parameters
+            example:
+              temperature: 22.5
+          timestamp:
+            type: string
+            format: date-time
+            description: When command was issued
+
+    TelemetryData:
+      name: TelemetryData
+      title: Telemetry Data
+      summary: Sensor data from IoT device
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - device_id
+          - metric_type
+          - value
+          - unit
+          - timestamp
+        properties:
+          device_id:
+            type: string
+            format: uuid
+            description: Source device identifier
+          metric_type:
+            type: string
+            enum:
+              - temperature
+              - humidity
+              - power
+              - status
+            description: Type of metric
+          value:
+            type: number
+            format: double
+            description: Measured value
+            example: 22.5
+          unit:
+            type: string
+            description: Unit of measurement
+            example: celsius
+          timestamp:
+            type: string
+            format: date-time
+            description: When measurement was taken
+
+    DeviceStatus:
+      name: DeviceStatus
+      title: Device Status
+      summary: Device online/offline status update
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - device_id
+          - status
+          - timestamp
+        properties:
+          device_id:
+            type: string
+            format: uuid
+            description: Device identifier
+          status:
+            type: string
+            enum:
+              - online
+              - offline
+            description: Current device status
+          timestamp:
+            type: string
+            format: date-time
+            description: When status changed
