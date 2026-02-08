@@ -52,6 +52,26 @@ services:
     networks:
       - smarthome-network
 
+  device-service:
+    build:
+      context: ./device-service
+      dockerfile: Dockerfile
+    container_name: device-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DEVICE_SERVICE_URL=http://device-service:8082
+      - DB_HOST=postgres
+      - DB_NAME=smarthome
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
 volumes:
   postgres_data:
 
